@@ -4,6 +4,11 @@ using Unity.Services.Authentication;
 using Unity.Services.Authentication.PlayerAccounts;
 using UnityEngine;
 
+
+/// <summary>
+/// This class is a facade for the Unity's Player Account Service
+/// The AuthServiceFacade access this facade to interact with the Unity's Player Account Service
+/// </summary>
 public class PlayerAccountFacade
 {
     public void SubscribeToEvents()
