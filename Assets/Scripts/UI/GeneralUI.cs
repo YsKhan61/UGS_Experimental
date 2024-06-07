@@ -17,7 +17,7 @@ public class GeneralUI : MonoBehaviour
 
     private void OnDestroy()
     {
-        _authServiceFacade.UnSubscribeFromEvents();
+        _authServiceFacade.UnsubscribeFromEvents();
     }
 
     public void SignInWithUnityPlayerAccount()
@@ -30,14 +30,32 @@ public class GeneralUI : MonoBehaviour
         SignInAnnonymouslyAsync();
     }
 
+    public void LinkWithUnityPlayerAccount()
+    {
+        _authServiceFacade.LinkWithUnityPlayerAccountAsync();
+    }
+
+    public void UnlinkFromUnityPlayerAccount()
+    {
+        UnlinkFromUniyPlayerAccount();
+    }
+
     public void SignOut()
     {
         _authServiceFacade.SignOut(true);
+        _authServiceFacade.ClearCachedSessionToken();
     }
 
     private async void SignInWithUnityPlayerAccountAsync()
     {
+        _authServiceFacade.LinkAccount = false;
         await _authServiceFacade.SignInWithUnityPlayerAccountAsync();
+    }
+
+    private async void UnlinkFromUniyPlayerAccount()
+    {
+        await _authServiceFacade.UnlinkUnityPlayerAccountAsync();
+        _authServiceFacade.SignOutUnityPlayerAccount();
     }
 
     private async void SignInAnnonymouslyAsync()

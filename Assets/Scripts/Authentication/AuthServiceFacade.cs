@@ -26,6 +26,8 @@ public class AuthServiceFacade
 {
     public AccountType AccountType { get; private set; }
 
+    public bool LinkAccount;
+
     /// <summary>
     /// Generate the initialization options for Unity Services
     /// </summary>
@@ -87,12 +89,34 @@ public class AuthServiceFacade
         switch (AccountType)
         {
             case AccountType.UnityPlayerAccount:
-                PlayerAccountService.Instance.SignOut();
+                SignOutUnityPlayerAccount();
                 break;
         }
 
-        AuthenticationService.Instance.SignOut(clearCredentials);
+        SignOutAuthenticationService();
         AccountType = AccountType.None;
+    }
+
+    /// <summary>
+    /// Sign out the Unity Player Account
+    /// </summary>
+    public void SignOutUnityPlayerAccount()
+    {
+        if (IsPlayerAccountServiceSignedIn())
+        {
+            PlayerAccountService.Instance.SignOut();
+        }
+    }
+
+    /// <summary>
+    /// Sign out the Authentication service
+    /// </summary>
+    public void SignOutAuthenticationService()
+    {
+        if (IsAuthenticationServiceSignedIn())
+        {
+            AuthenticationService.Instance.SignOut();
+        }
     }
 
     /// <summary>
@@ -311,24 +335,6 @@ public class AuthServiceFacade
         return PlayerAccountService.Instance.IsSignedIn;
     }
 
-    /// <summary>
-    /// Initializes the Player Account Service
-    /// </summary>
-    public async Task InitializePlayerAccountService()
-    {
-        if (IsPlayerAccountServiceSignedIn())
-            return;
-
-        try
-        {
-            await PlayerAccountService.Instance.StartSignInAsync();
-        }
-        catch (Exception e)
-        {
-            Debug.LogError("Failed to initialize Player Account Service: " + e.Message);
-        }
-    }
-
     public string GetPlayerAccountAccessToken()
     {
         return PlayerAccountService.Instance.AccessToken;
@@ -350,7 +356,7 @@ public class AuthServiceFacade
 
         try
         {
-            await InitializePlayerAccountService();
+            await PlayerAccountService.Instance.StartSignInAsync();
         }
         catch (Exception e)
         {
@@ -361,16 +367,23 @@ public class AuthServiceFacade
     /// <summary>
     /// Link the current player account with the Unity Player Accounts credentials.
     /// </summary>
-    /// <remarks>https://docs.unity.com/ugs/en-us/manual/authentication/manual/unity-player-accounts</remarks>
-    public async Task LinkWithUnityAsync(string accessToken)
+    public void LinkWithUnityPlayerAccountAsync()
     {
-        try
+        if (!IsAuthenticationServiceAuthorized())
         {
-            await AuthenticationService.Instance.LinkWithUnityAsync(accessToken);
+            Debug.Log("Not signed in with Unity Authentication");
+            return;
         }
-        catch (Exception e)
+
+        LinkAccount = true;
+
+        if (IsPlayerAccountServiceSignedIn())
         {
-            Debug.LogError("Link with Unity Player Account failed: " + e.Message);
+            LinkPlayerAccountWithAuthentication();
+        }
+        else
+        {
+            _ = SignInWithUnityPlayerAccountAsync();
         }
     }
 
@@ -378,11 +391,19 @@ public class AuthServiceFacade
     /// Unlink the current player account from the Unity Player Accounts credentials.
     /// </summary>
     /// <remarks>https://docs.unity.com/ugs/en-us/manual/authentication/manual/unity-player-accounts</remarks>
-    public async Task UnlinkUnityAsync()
+    public async Task UnlinkUnityPlayerAccountAsync()
     {
+        if (!IsAuthenticationServiceAuthorized())
+        {
+            Debug.Log("Not signed in with Unity Authentication");
+            return;
+        }
+
         try
         {
             await AuthenticationService.Instance.UnlinkUnityAsync();
+            Debug.Log("Unlink Unity Player Account successful");
+            AccountType = AccountType.GuestAccount;
         }
         catch (Exception e)
         {
@@ -390,17 +411,7 @@ public class AuthServiceFacade
         }
     }
 
-    public void SubscribeToAuthenticationEvents()
-    {
-        AuthenticationService.Instance.SignedIn += AuthServiceSignedIn;
-        AuthenticationService.Instance.SignInFailed += AuthServiceSignedInFailed;
-        AuthenticationService.Instance.SignedOut += AuthServiceSignedOut;
-
-        PlayerAccountService.Instance.SignedIn += LinkPlayerAccountWithAuthentication;
-        PlayerAccountService.Instance.SignedOut += PlayerAcountSignedOut;
-    }
-
-    public void UnSubscribeFromEvents()
+    public void UnsubscribeFromEvents()
     {
         AuthenticationService.Instance.SignedIn -= AuthServiceSignedIn;
         AuthenticationService.Instance.SignInFailed -= AuthServiceSignedInFailed;
@@ -410,6 +421,15 @@ public class AuthServiceFacade
         PlayerAccountService.Instance.SignedOut -= PlayerAcountSignedOut;
     }
 
+    private void SubscribeToAuthenticationEvents()
+    {
+        AuthenticationService.Instance.SignedIn += AuthServiceSignedIn;
+        AuthenticationService.Instance.SignInFailed += AuthServiceSignedInFailed;
+        AuthenticationService.Instance.SignedOut += AuthServiceSignedOut;
+
+        PlayerAccountService.Instance.SignedIn += LinkPlayerAccountWithAuthentication;
+        PlayerAccountService.Instance.SignedOut += PlayerAcountSignedOut;
+    }
 
     private void AuthServiceSignedIn()
     {
@@ -428,23 +448,44 @@ public class AuthServiceFacade
         Debug.Log("AuthServiceFacade: Signed out");
     }
 
-    private async void LinkPlayerAccountWithAuthentication()
-    {
-        Debug.Log("Player Account Service Signed in with Access Token: " + GetPlayerAccountAccessToken());
-
-        // now connect the Unity Player Account with the Unity Authentication
-        if (IsPlayerAccountServiceSignedIn())
-        {
-            string accessToken = GetPlayerAccountAccessToken();
-            await AuthenticationService.Instance.SignInWithUnityAsync(accessToken);
-            AccountType = AccountType.UnityPlayerAccount;
-        }
-    }
-
     private void PlayerAcountSignedOut()
     {
         Debug.Log("Player Account Service Signed out");
     }
+
+    /// <summary>
+    /// Linking only happens when the player account service is signed in
+    /// </summary>
+    private async void LinkPlayerAccountWithAuthentication()
+    {
+        try
+        {
+            // now connect the Unity Player Account with the Unity Authentication
+            if (IsPlayerAccountServiceSignedIn())
+            {
+                string accessToken = GetPlayerAccountAccessToken();
+
+                if (LinkAccount)
+                {
+                    await AuthenticationService.Instance.LinkWithUnityAsync(accessToken);
+                }
+                else
+                {
+                    await AuthenticationService.Instance.SignInWithUnityAsync(accessToken);
+                }
+
+                AccountType = AccountType.UnityPlayerAccount;
+
+                Debug.Log("Link player account with authentication successful");
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("Link player account with authentication failed: " + e.Message);
+        }
+    }
+
+    
 
     private void LogPlayerInfo(PlayerInfo playerInfo)
     {
