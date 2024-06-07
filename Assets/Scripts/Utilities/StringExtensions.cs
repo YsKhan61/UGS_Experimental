@@ -1,3 +1,5 @@
+using UnityEngine;
+
 public static class StringExtensions
 {
     /// <summary>
@@ -7,7 +9,7 @@ public static class StringExtensions
     /// <param name="length">the max length to allow</param>
     public static string RemoveWhiteSpaceAndLimitLength(this string str, int length)
     {
-        return str.Replace(" ", "")[..length];
+        return str.Replace(" ", "")[..Mathf.Min(str.Length,length)];
     }
 
     // Add a method that will filter the string to only supports alphanumeric values, `-`, `_` and has a maximum length of 30 characters.
@@ -21,6 +23,6 @@ public static class StringExtensions
                 filteredString += c;
             }
         }
-        return filteredString[..length];
+        return filteredString[..Mathf.Min(str.Length, length)];
     }
 }

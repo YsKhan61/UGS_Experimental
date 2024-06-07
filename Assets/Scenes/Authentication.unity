@@ -1822,7 +1822,7 @@ PrefabInstance:
         type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 962832220}
     - target: {fileID: 4141508108380133963, guid: 70f1dc6233e1e8d4f8f9d5f22ff36fb2,
         type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
@@ -1831,12 +1831,12 @@ PrefabInstance:
     - target: {fileID: 4141508108380133963, guid: 70f1dc6233e1e8d4f8f9d5f22ff36fb2,
         type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
-      value: InitializeUnityServices
+      value: UpdatePlayerName
       objectReference: {fileID: 0}
     - target: {fileID: 4141508108380133963, guid: 70f1dc6233e1e8d4f8f9d5f22ff36fb2,
         type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
-      value: AuthServiceFacade, Assembly-CSharp
+      value: GeneralUI, Assembly-CSharp
       objectReference: {fileID: 0}
     - target: {fileID: 4141508108380133963, guid: 70f1dc6233e1e8d4f8f9d5f22ff36fb2,
         type: 3}

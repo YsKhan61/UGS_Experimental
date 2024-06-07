@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 using UnityEngine;
 
@@ -13,6 +14,18 @@ public class GeneralUI : MonoBehaviour
     {
         _authServiceFacade = new AuthServiceFacade();
         _ = _authServiceFacade.InitializeAndSubscribeToUnityServicesAsync();
+    }
+
+    private void OnEnable()
+    {
+        _authServiceFacade.OnAuthServiceSignedIn += OnAuthServiceSignedIn;
+        _authServiceFacade.OnAuthServiceSignedOut += OnAuthServiceSignedOut;
+    }
+
+    private void OnDisable()
+    {
+        _authServiceFacade.OnAuthServiceSignedIn -= OnAuthServiceSignedIn;
+        _authServiceFacade.OnAuthServiceSignedOut -= OnAuthServiceSignedOut;
     }
 
     private void OnDestroy()
@@ -40,26 +53,43 @@ public class GeneralUI : MonoBehaviour
         UnlinkFromUniyPlayerAccount();
     }
 
+    public void UpdatePlayerName()
+    {
+        _authServiceFacade.UpdatePlayerName(_nameInputField.text);
+    }
+
     public void SignOut()
     {
         _authServiceFacade.SignOut(true);
         _authServiceFacade.ClearCachedSessionToken();
     }
 
-    private async void SignInWithUnityPlayerAccountAsync()
+    private void SignInWithUnityPlayerAccountAsync()
     {
         _authServiceFacade.LinkAccount = false;
-        await _authServiceFacade.SignInWithUnityPlayerAccountAsync();
+        // await _authServiceFacade.SignInWithUnityPlayerAccountAsync();
+        _authServiceFacade.SignInWithUnityPlayerAccount();
     }
 
     private async void UnlinkFromUniyPlayerAccount()
     {
         await _authServiceFacade.UnlinkUnityPlayerAccountAsync();
-        _authServiceFacade.SignOutUnityPlayerAccount();
+        // _authServiceFacade.SignOutUnityPlayerAccount();
     }
 
     private async void SignInAnnonymouslyAsync()
     {
         await _authServiceFacade.SignInAnnonymouslyAsync();
+    }
+
+    private async void OnAuthServiceSignedIn()
+    {
+        string playerName = await _authServiceFacade.GetPlayerName();
+        _nameInputField.text = playerName;
+    }
+
+    private void OnAuthServiceSignedOut()
+    {
+        _nameInputField.text = "";
     }
 }
