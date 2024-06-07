@@ -457,6 +457,7 @@ public class AuthServiceFacade
         catch (Exception e)
         {
             Debug.LogError("Link player account with authentication failed: " + e.Message);
+            _playerAccountFacade.SignOutUnityPlayerAccount();
         }
     }
 
