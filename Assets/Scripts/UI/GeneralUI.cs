@@ -1,4 +1,3 @@
-using System;
 using TMPro;
 using UnityEngine;
 
@@ -67,14 +66,12 @@ public class GeneralUI : MonoBehaviour
     private void SignInWithUnityPlayerAccountAsync()
     {
         _authServiceFacade.LinkAccount = false;
-        // await _authServiceFacade.SignInWithUnityPlayerAccountAsync();
         _authServiceFacade.SignInWithUnityPlayerAccount();
     }
 
     private async void UnlinkFromUniyPlayerAccount()
     {
         await _authServiceFacade.UnlinkUnityPlayerAccountAsync();
-        // _authServiceFacade.SignOutUnityPlayerAccount();
     }
 
     private async void SignInAnnonymouslyAsync()
