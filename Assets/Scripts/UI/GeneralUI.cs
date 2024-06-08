@@ -34,12 +34,12 @@ public class GeneralUI : MonoBehaviour
 
     public void SignInWithUnityPlayerAccount()
     {
-        SignInWithUnityPlayerAccountAsync();
+        SignInAsync(AccountType.UnityPlayerAccount);
     }
 
     public void SignInAnnonymously()
     {
-        SignInAnnonymouslyAsync();
+        SignInAsync(AccountType.GuestAccount);
     }
 
     public void LinkWithUnityPlayerAccount()
@@ -54,7 +54,7 @@ public class GeneralUI : MonoBehaviour
 
     public void UpdatePlayerName()
     {
-        _authServiceFacade.UpdatePlayerName(_nameInputField.text);
+        _authServiceFacade.UpdatePlayerNameAsync(_nameInputField.text);
     }
 
     public void SignOut()
@@ -63,20 +63,18 @@ public class GeneralUI : MonoBehaviour
         _authServiceFacade.ClearCachedSessionToken();
     }
 
-    private void SignInWithUnityPlayerAccountAsync()
+    private async void SignInAsync(AccountType accountType)
     {
+        _authServiceFacade.SignOut(true);
+        _authServiceFacade.ClearCachedSessionToken();
+        await _authServiceFacade.InitializeAndSubscribeToUnityServicesAsync();
         _authServiceFacade.LinkAccount = false;
-        _authServiceFacade.SignInWithUnityPlayerAccount();
+        await _authServiceFacade.SignInAsync(AccountType.UnityPlayerAccount);
     }
 
     private async void UnlinkFromUniyPlayerAccount()
     {
         await _authServiceFacade.UnlinkUnityPlayerAccountAsync();
-    }
-
-    private async void SignInAnnonymouslyAsync()
-    {
-        await _authServiceFacade.SignInAnnonymouslyAsync();
     }
 
     private async void OnAuthServiceSignedIn()
