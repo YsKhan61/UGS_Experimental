@@ -47,7 +47,7 @@ public class AuthServiceFacade
     /// </summary>
     /// <param name="profileName">the profile name to be set in the options</param>
     /// <remarks>https://docs.unity.com/ugs/en-us/manual/authentication/manual/profile-management</remarks>
-    public InitializationOptions GenerateInitializationOption(string profileName)
+    public InitializationOptions GenerateInitializationOption(string profileName = null)
     {
         InitializationOptions initializationOptions = new();
         initializationOptions.SetProfile(profileName);
@@ -61,6 +61,12 @@ public class AuthServiceFacade
     /// <remarks>https://docs.unity.com/ugs/en-us/manual/authentication/manual/get-started</remarks>
     public async Task InitializeAndSubscribeToUnityServicesAsync(InitializationOptions options = default)
     {
+        if (UnityServices.State == ServicesInitializationState.Initialized)
+        {
+            Debug.Log("Unity Services already initialized");
+            return;
+        }
+
         try
         {
             await UnityServices.InitializeAsync(options);
@@ -74,22 +80,20 @@ public class AuthServiceFacade
     }
 
     /// <summary>
-    /// Sign in annonmously
+    /// Sign in with third party account such as Unity Player Account, Google, Facebook etc.
     /// </summary>
-    /// <remarks>https://docs.unity.com/ugs/en-us/manual/authentication/manual/use-anon-sign-in</remarks>
-    public async Task SignInAnnonymouslyAsync()
+    public async Task SignInAsync(AccountType accountType)
     {
-        try
+        switch (accountType)
         {
-            await AuthenticationService.Instance.SignInAnonymouslyAsync();
-            AccountType = AccountType.GuestAccount;
-        }
-        catch (Exception e)
-        {
-            Debug.LogError("Sign in anonymously failed: " + e.Message);
+            case AccountType.UnityPlayerAccount:
+                await _playerAccountFacade.SignInWithUnityPlayerAccountAsync();
+                break;
+            case AccountType.GuestAccount:
+                await SignInAnnonymouslyAsync();
+                break;
         }
     }
-
 
     /// <summary>
     /// Signing out resets the access token and player ID. 
@@ -108,7 +112,6 @@ public class AuthServiceFacade
         }
 
         SignOutAuthenticationService();
-        AccountType = AccountType.None;
     }
 
     /// <summary>
@@ -119,6 +122,7 @@ public class AuthServiceFacade
         if (IsAuthenticationServiceSignedIn())
         {
             AuthenticationService.Instance.SignOut();
+            AccountType = AccountType.None;
         }
     }
 
@@ -213,7 +217,7 @@ public class AuthServiceFacade
     /// Update the player name
     /// </summary>
     /// <remarks>https://docs.unity.com/ugs/en-us/manual/authentication/manual/player-name-management</remarks>
-    public async void UpdatePlayerName(string name)
+    public async void UpdatePlayerNameAsync(string name)
     {
         if (!IsAuthenticationServiceSignedIn())
         {
@@ -332,12 +336,6 @@ public class AuthServiceFacade
         }
     }
 
-
-    public void SignInWithUnityPlayerAccount()
-    {
-        _ = _playerAccountFacade.SignInWithUnityPlayerAccountAsync();
-    }
-
     /// <summary>
     /// Link the current player account with the Unity Player Accounts credentials.
     /// </summary>
@@ -345,7 +343,7 @@ public class AuthServiceFacade
     {
         if (!IsAuthenticationServiceAuthorized())
         {
-            Debug.Log("Not signed in with Unity Authentication");
+            Debug.Log("Not authorized with Unity Authentication");
             return;
         }
 
@@ -398,6 +396,29 @@ public class AuthServiceFacade
         _playerAccountFacade.UnsubscribeFromEvents();
     }
 
+    /// <summary>
+    /// Sign in annonmously
+    /// </summary>
+    /// <remarks>https://docs.unity.com/ugs/en-us/manual/authentication/manual/use-anon-sign-in</remarks>
+    private async Task SignInAnnonymouslyAsync()
+    {
+        if (IsAuthenticationServiceSignedIn())
+        {
+            Debug.Log("Already signed in");
+            return;
+        }
+
+        try
+        {
+            await AuthenticationService.Instance.SignInAnonymouslyAsync();
+            AccountType = AccountType.GuestAccount;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("Sign in anonymously failed: " + e.Message);
+        }
+    }
+
     private void SubscribeToEvents()
     {
         AuthenticationService.Instance.SignedIn += AuthServiceSignedIn;
@@ -433,26 +454,29 @@ public class AuthServiceFacade
     /// </summary>
     private async void LinkPlayerAccountWithAuthentication()
     {
+        if (!_playerAccountFacade.IsPlayerAccountServiceSignedIn())
+        {
+            Debug.Log("Player Account Service not signed in");
+            return;
+        }
+
         try
         {
             // now connect the Unity Player Account with the Unity Authentication
-            if (_playerAccountFacade.IsPlayerAccountServiceSignedIn())
+            string accessToken = _playerAccountFacade.GetPlayerAccountAccessToken();
+
+            if (LinkAccount)
             {
-                string accessToken = _playerAccountFacade.GetPlayerAccountAccessToken();
-
-                if (LinkAccount)
-                {
-                    await AuthenticationService.Instance.LinkWithUnityAsync(accessToken);
-                }
-                else
-                {
-                    await AuthenticationService.Instance.SignInWithUnityAsync(accessToken);
-                }
-
-                AccountType = AccountType.UnityPlayerAccount;
-
-                Debug.Log("Link player account with authentication successful");
+                await AuthenticationService.Instance.LinkWithUnityAsync(accessToken);
             }
+            else
+            {
+                await AuthenticationService.Instance.SignInWithUnityAsync(accessToken);
+            }
+
+            AccountType = AccountType.UnityPlayerAccount;
+
+            Debug.Log("Link player account with authentication successful");
         }
         catch (Exception e)
         {
